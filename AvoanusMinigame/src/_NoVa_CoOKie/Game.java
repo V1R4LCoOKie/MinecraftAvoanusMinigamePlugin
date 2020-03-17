@@ -144,6 +144,7 @@ public class Game {
 					   											.replaceFirst("~", String.valueOf(spawn.getZ())));
 			for (Entity ent : spawn.getChunk().getEntities())
 				if (ent.getLocation().distance(spawn) == 0) {
+					if (ent.getType() == EntityType.PLAYER || ent.getType() == EntityType.DROPPED_ITEM || ent.getType() == EntityType.EXPERIENCE_ORB) continue;
 					boolean flag = false;
 					for (Entity knownEnemy : enemies)
 						if (knownEnemy == ent) {
