@@ -33,7 +33,7 @@ public class Game {
 		}
 	}
 	
-/*	private class PlayerWithScore implements Comparable<PlayerWithScore> {
+	private class PlayerWithScore implements Comparable<PlayerWithScore> {
 
 		Player player;
 		public int score = 0;
@@ -46,7 +46,7 @@ public class Game {
 		public int compareTo(PlayerWithScore other) {
 			return other.score - score;
 		}
-	}*/
+	}
 	
 	Plugin mainPlugin;
 	
@@ -59,8 +59,11 @@ public class Game {
 	private long spawnFrequency; // in ticks
 	private int minWaveSize;
 	private int maxWaveSize;
-	/*private int pointsPerPlayerKill;
+	private int minWaveRate;
+	private int maxWaveRate;
+	private boolean displayPoints;
 	private int pointsPerKill;
+	/*private int pointsPerPlayerKill;
 	private int pointsLostPerDeath;*/
 	private Location[] spawns;
 	private Enemy[] enemyPool;
@@ -70,10 +73,9 @@ public class Game {
 	private int numEnemiesLeftToSpawn;
 	private int waveNumber = 0;
 	private int difficulty = minDifficulty;
-//	private PlayerWithScore[] players;
-	private Player[] players;
+	private PlayerWithScore[] players;
 	private int numLivingPlayers;
-	private Player[] livingPlayers;
+	private PlayerWithScore[] livingPlayers;
 	private Entity[] enemies;
 	
 	Random randomGen;
@@ -88,23 +90,21 @@ public class Game {
 		spawnFrequency = config.getLong("spawnFrequency");
 		minWaveSize = config.getInt("minWaveSize");
 		maxWaveSize = config.getInt("maxWaveSize");
-		enemies = new Entity[maxWaveSize];
-		/*pointsPerPlayerKill = config.getInt("pointsPerPlayerKill");
+		minWaveRate = config.getInt("minWaveRate");
+		maxWaveRate = config.getInt("maxWaveRate");
+		enemies = new Entity[maxWaveSize - 1];
+		displayPoints = config.getBoolean("displayPoints");
 		pointsPerKill = config.getInt("pointsPerKill");
+		/*pointsPerPlayerKill = config.getInt("pointsPerPlayerKill");
 		pointsLostPerDeath = config.getInt("pointsLostPerDeath");*/
 		spawns = new Location[config.getInt("numSpawns")];
 		for (int i = 0; i < config.getInt("numSpawns"); ++i)
 			spawns[i] = config.getLocation("Spawn" + (i + 1));
-		/*this.players = new PlayerWithScore[players.length];
+		this.players = new PlayerWithScore[players.length];
+		livingPlayers = new PlayerWithScore[players.length];
 		for (int i = 0; i < players.length; ++i)
-			this.players[i] = new PlayerWithScore(players[i]);*/
-		this.players = new Player[players.length];
+			livingPlayers[i] = this.players[i] = new PlayerWithScore(players[i]);
 		numLivingPlayers = players.length;
-		livingPlayers = new Player[players.length];
-		for (int i = 0; i < players.length; ++i) {
-			this.players[i] = players[i];
-			livingPlayers[i] = players[i];
-		}
 		enemyPool = new Enemy[config.getInt("enemyPoolSize")];
 		for (int i = 1; i < config.getInt("enemyPoolSize") + 1; ++i)
 			enemyPool[i - 1] = new Enemy(config.getString("Enemy" + i + ".summon"), 
@@ -118,10 +118,14 @@ public class Game {
 	public long getWaitTime() {return spawnFrequency;}
 	
 	public void newWave() {
+		difficulty += difficultyRate;
+		difficulty = difficulty > maxDifficulty ? maxDifficulty : difficulty;
+		minWaveSize += minWaveRate;
+		maxWaveSize += maxWaveRate;
 		numEnemiesLeftToSpawn = randomGen.nextInt(maxWaveSize - minWaveSize) + minWaveSize;
 		++waveNumber;
-		for (Player p : players)
-			p.sendMessage(ChatColor.DARK_GRAY + "WAVE " + waveNumber + "! " + numEnemiesLeftToSpawn + " enemies incoming...");
+		for (PlayerWithScore p : players)
+			p.player.sendMessage(ChatColor.DARK_GRAY + "WAVE " + waveNumber + "! " + numEnemiesLeftToSpawn + " enemies incoming...");
 		difficulty += difficultyRate;
 	}
 	
@@ -174,20 +178,20 @@ public class Game {
 	public void notifyOfDeath(EntityDeathEvent e) {
 		if (e.getEntityType() == EntityType.PLAYER) {
 			//for (PlayerWithScore p : players) {
-			for (Player p : players) {
+			for (PlayerWithScore p : players) {
 				/*if ((Player) e.getEntity().getKiller() == p) {
 					//for (PlayerWithScore otherp : players)
 					for (Player otherp : players)
 						otherp.sendMessage(ChatColor.RED + p.getName() + " KILLED " + e.getEntity().getName() + "!");// + ChatColor.GOLD + " +" + pointsPerPlayerKill);
 					//p.score += pointsPerPlayerKill;
 				}*/
-				if ((Player) e.getEntity() == p) {
+				if ((Player) e.getEntity() == p.player) {
 					//for (PlayerWithScore otherp : players)
-					for (Player otherp : players)
-						otherp.sendMessage(ChatColor.RED + e.getEntity().getName() + " DIED.");//  -" + pointsLostPerDeath);
+					for (PlayerWithScore otherp : players)
+						otherp.player.sendMessage(ChatColor.RED + e.getEntity().getName() + " DIED.");//  -" + pointsLostPerDeath);
 					for (int i = 0; i < numLivingPlayers; ++i)
-						if (livingPlayers[i] == e.getEntity()) {
-							Player temp = livingPlayers[i];
+						if (livingPlayers[i].player == e.getEntity()) {
+							PlayerWithScore temp = livingPlayers[i];
 							for (int j = i; j < numLivingPlayers - 1; ++j)
 								livingPlayers[j] = livingPlayers[j + 1];
 							livingPlayers[numLivingPlayers - 1] = temp;
@@ -207,51 +211,40 @@ public class Game {
 					for (int j = i; j < numEnemies - 1; ++j)
 						enemies[j] = enemies[j + 1];
 					--numEnemies;
-					if (numEnemies == 0) {
+					if (numEnemies == 0)
 						newWave();
-						difficulty += difficultyRate;
-						difficulty = difficulty > maxDifficulty ? maxDifficulty : difficulty;
-					}
 				}
 		}
 		else {
 			for (int i = 0; i < numEnemies; ++i)
 				if (enemies[i] == e.getEntity()) {
 					//for (PlayerWithScore p : players) {
-					for (Player p : players) {
-						p.sendMessage(ChatColor.GREEN + "" + ChatColor.BOLD + e.getEntity().getKiller().getName() + ChatColor.WHITE + " KILLED " + ChatColor.RED + e.getEntity().getName() + ChatColor.RESET + "!");// + ChatColor.GOLD + " +" + pointsPerKill);
-						//if (p.getName().equalsIgnoreCase(e.getEntity().getKiller().getName()))
-							//p.score += pointsPerKill;
+					for (PlayerWithScore p : players) {
+						p.player.sendMessage(ChatColor.GREEN + "" + ChatColor.BOLD + e.getEntity().getKiller().getName() + ChatColor.WHITE + " KILLED " + ChatColor.RED + e.getEntity().getName() + ChatColor.RESET + "!");// + ChatColor.GOLD + " +" + pointsPerKill);
+						if (p.player.getName().equalsIgnoreCase(e.getEntity().getKiller().getName()))
+							p.score += pointsPerKill;
 					}
 					enemies[i] = null;
 					for (int j = i; j < numEnemies - 1; ++j)
 						enemies[j] = enemies[j + 1];
 					--numEnemies;
-					if (numEnemies == 0) {
+					if (numEnemies == 0)
 						newWave();
-						difficulty += difficultyRate;
-						difficulty = difficulty > maxDifficulty ? maxDifficulty : difficulty;
-					}
 				}
 		}
 		return;
 	}
 
-	public void sendWinner() {
-		for (Player p : players) {
-			p.sendMessage(ChatColor.GOLD + "1st: " + ChatColor.BOLD + livingPlayers[0].getName());
-			if (livingPlayers.length > 1) p.sendMessage(ChatColor.GRAY + "2nd: " + ChatColor.BOLD + livingPlayers[1].getName());
-			if (livingPlayers.length > 2) p.sendMessage(ChatColor.DARK_AQUA + "3rd: " + ChatColor.BOLD + livingPlayers[2].getName());
+	public void sendWinners() {
+		for (PlayerWithScore p : players) {
+			p.player.sendMessage(ChatColor.GOLD + "1st: " + ChatColor.BOLD + livingPlayers[0].player.getName() + (displayPoints ? "" : ChatColor.RED + "" + ChatColor.BOLD + " score: " + livingPlayers[0].score));
+			if (livingPlayers.length > 1) p.player.sendMessage(ChatColor.GRAY + "2nd: " + ChatColor.BOLD + livingPlayers[1].player.getName() + (displayPoints ? "" : ChatColor.RED + "" + ChatColor.BOLD + " score: " + livingPlayers[1].score));
+			if (livingPlayers.length > 2) p.player.sendMessage(ChatColor.DARK_AQUA + "3rd: " + ChatColor.BOLD + livingPlayers[2].player.getName() + (displayPoints ? "" : ChatColor.RED + "" + ChatColor.BOLD + " score: " + livingPlayers[2].score));
 		}
 	}
 	
-	/*
-	public void sendScores() {
-		java.util.Arrays.sort(players);
-		for (PlayerWithScore p : players) {
-			p.player.sendMessage(ChatColor.GOLD + "1st:" + ChatColor.BOLD + players[0].player.getName() + ": " + players[0].score);
-			if (players.length > 1) p.player.sendMessage(ChatColor.GRAY + "2nd" + ChatColor.BOLD + players[1].player.getName() + ": " + players[1].score);
-			if (players.length > 2) p.player.sendMessage(ChatColor.DARK_AQUA + "3rd" + ChatColor.BOLD + players[2].player.getName() + ": " + players[2].score);
-		}
-	}*/
+	public void killRemainingEnemies() {
+		for (Entity enemy : enemies)
+			if (enemy != null) enemy.remove();
+	}
 }

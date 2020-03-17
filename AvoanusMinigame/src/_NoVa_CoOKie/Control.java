@@ -47,11 +47,10 @@ public class Control extends JavaPlugin implements Listener {
 			try {
 				file.createNewFile();
 				FileWriter fr = new FileWriter(file);
-				/*fr.write("  # point distribution\n");
-				fr.write("  pointsPerKill: 1\n");
-				fr.write("  pointsPerPlayerKill: 5\n");
-				fr.write("  pointsLostPerDeath: 5\n");*/
 				fr.write("Game1:\r\n" + 
+						"  # should the game display the players score as well as placement?\r\n" + 
+						"  displayPoints: 1\r\n" +
+						"  pointsPerKill: 1\r\n" +
 						"  # \"difficult\" value for determining which mobs can spawn\r\n" + 
 						"  minDifficulty: 0\r\n" + 
 						"  maxDifficulty: 100\r\n" + 
@@ -61,6 +60,10 @@ public class Control extends JavaPlugin implements Listener {
 						"  minWaveSize: 6\r\n" + 
 						"  # exclusive\r\n" + 
 						"  maxWaveSize: 10\r\n" + 
+						"  # amount minWaveSize should increase every wave\r\n" +
+						"  minWaveRate: 0\r\n" +
+						"  # amount maxWaveSize should increase every wave\r\n" +
+						"  maxWaveRate: 0\r\n" +
 						"  # max number of mobs to spawn everytime it tries. This is only an upper bound\r\n" + 
 						"  maxSpawnPerTry: 3\r\n" + 
 						"  # in server ticks, the amount of time between spawning new mobs\r\n" + 
@@ -100,8 +103,8 @@ public class Control extends JavaPlugin implements Listener {
 	}
 	
 	private void stopGame(CommandSender sender) {
-		//activeGame.sendScores();
-		activeGame.sendWinner();
+		activeGame.sendWinners();
+		activeGame.killRemainingEnemies();
 		getServer().getScheduler().cancelTask(spawnTask);
 		activeGame = null;
 		sender.sendMessage(ChatColor.RED + "" + ChatColor.BOLD + "The game has been stopped.");
