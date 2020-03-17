@@ -1,0 +1,16 @@
+name: AvoanusMinigame
+main: _NoVa_CoOKie.Control
+version: 1.0
+commands:
+   startgame:
+      description: Starts a new game.
+      usage: /<command> [GameNumber](1,2,3...) Player1 Player2 Player3...PlayerN.
+   stopgame:
+      description: Stops the current game.
+      usage: /<command>
+   addspawn:
+      description: Add current position as an enemy spawnpoint in the specified game settings.
+      usage: /<command> [GameNumber](1,2,3...)
+   minireload:
+      description: Reload the config for the Avoanus Minigame plugin.
+      usage: /<command>
