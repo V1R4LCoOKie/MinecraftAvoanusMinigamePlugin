@@ -47,35 +47,35 @@ public class Control extends JavaPlugin implements Listener {
 			try {
 				file.createNewFile();
 				FileWriter fr = new FileWriter(file);
-				fr.write("Game1:\n");
 				/*fr.write("  # point distribution\n");
 				fr.write("  pointsPerKill: 1\n");
 				fr.write("  pointsPerPlayerKill: 5\n");
 				fr.write("  pointsLostPerDeath: 5\n");*/
-				fr.write("  # \"difficulty\" value for determining which mobs can spawn\n");
-				fr.write("  minDifficulty: 0\n");
-				fr.write("  maxDifficulty: 100\n");
-				fr.write("  # amount the difficulty should increase after mob kill\n");
-				fr.write("  difficultyRate: 5\n");
-				fr.write("  maxEnemies: 10\n");
-				fr.write("  # max number of mobs to spawn everytime it tries. This is only an upper bound\n");
-				fr.write("  maxSpawnPerTry: 3\n");
-				fr.write("  # in server ticks, the amount of time between spawning new mobs\n");
-				fr.write("  spawnFrequency: 200\n");
-				fr.write("  # number of Enemy# properties are there. Please make sure this number is accurate.\n");
-				fr.write("  enemyPoolSize: 1\n");
-				fr.write("  # name new enemies as Enemy# so that the numbers increase, and no \"holes\" are left.\n");
-				fr.write("  Enemy1:\n");
-				fr.write("    # exact command used to summon enemy. make sure the spawn coords are \"~ ~ ~\".\n");
-				fr.write("    summon: summon zombie ~ ~ ~\n");
-				fr.write("    ## the required difficulty for this mob to spawn.\n");
-				fr.write("    # make sure at least one enemy has a difficulty less than or equal to the minDifficulty\n");
-				fr.write("    difficulty: 0\n");
-				fr.write("  # dont have to touch. Instead, use the command addspawn command ingame/addspawn\n");
-				fr.write("  # Stand in the position you would like as a spawn, and use this command\n");
-				fr.write("  # /addspawn [GameSettingsNumber(1,2,3)]\n");
-				fr.write("  # also, if you wish to remove a spawn, please make sure to decrement this value so that it still holds.\n");
-				fr.write("  numSpawns: 0\n");
+				fr.write("Game1:\r\n" + 
+						"  # \"difficult\" value for determining which mobs can spawn\r\n" + 
+						"  minDifficulty: 0\r\n" + 
+						"  maxDifficulty: 100\r\n" + 
+						"  # amount the difficulty should increase each wave\r\n" + 
+						"  difficultyRate: 5\r\n" + 
+						"  # inclusive\r\n" + 
+						"  minWaveSize: 6\r\n" + 
+						"  # exclusive\r\n" + 
+						"  maxWaveSize: 10\r\n" + 
+						"  # max number of mobs to spawn everytime it tries. This is only an upper bound\r\n" + 
+						"  maxSpawnPerTry: 3\r\n" + 
+						"  # in server ticks, the amount of time between spawning new mobs\r\n" + 
+						"  spawnFrequency: 20\r\n" + 
+						"  # number of Enemy# properties are there. Please make sure this number is accurate.\r\n" + 
+						"  enemyPoolSize: 1\r\n" + 
+						"  # name new enemies as Enemy# so that the numbers increase, and no \"holes\" are left.\r\n" + 
+						"  Enemy1:\r\n" + 
+						"    summon: summon zombie ~ ~ ~\r\n" + 
+						"    difficulty: 0\r\n" + 
+						"  # dont have to touch. Instead, use the command addspawn command ingame/addspawn\r\n" + 
+						"  # Stand in the position you would like as a spawn, and use this command\r\n" + 
+						"  # /addspawn [GameSettingsNumber(1,2,3)]\r\n" + 
+						"  # also, if you wish to remove a spawn, please make sure to decrement this value so that it still holds.\r\n" + 
+						"  numSpawns: 0");
 				fr.close();
 			} catch (IOException e) {}
 		}
