@@ -22,3 +22,7 @@ commands:
       description: Reload the config for the Avoanus Minigame plugin.
       usage: /<command>
       permission: minigame.*
+   announcegame:
+      description: Gives all players a link to tp to the game.
+      usage: /<command>
+      permission: minigame.*

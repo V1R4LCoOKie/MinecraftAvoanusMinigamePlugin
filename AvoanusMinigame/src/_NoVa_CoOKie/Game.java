@@ -61,22 +61,33 @@ public class Game {
 	private int maxWaveSize;
 	private int minWaveRate;
 	private int maxWaveRate;
+	private int maxTankSpawnPerTry;
+	private int tankWaveStart;
+	private int minTankSize;
+	private int maxTankSize;
+	private int minTankRate;
+	private int maxTankRate;
 	private boolean displayPoints;
 	private int pointsPerKill;
+	private int pointsPerTankKill;
 	/*private int pointsPerPlayerKill;
 	private int pointsLostPerDeath;*/
 	private Location[] spawns;
 	private Enemy[] enemyPool;
+	private Enemy[] tankPool;
 	
 	// Current game state
 	private int numEnemies = 0;
 	private int numEnemiesLeftToSpawn;
+	private int numTanks = 0;
+	private int numTanksLeftToSpawn;
 	private int waveNumber = 0;
 	private int difficulty = minDifficulty;
 	private PlayerWithScore[] players;
 	private int numLivingPlayers;
 	private PlayerWithScore[] livingPlayers;
 	private Entity[] enemies;
+	private Entity[] tanks;
 	
 	Random randomGen;
 	
@@ -92,9 +103,17 @@ public class Game {
 		maxWaveSize = config.getInt("maxWaveSize");
 		minWaveRate = config.getInt("minWaveRate");
 		maxWaveRate = config.getInt("maxWaveRate");
+		maxTankSpawnPerTry = config.getInt("maxTankSpawnPerTry");
+		tankWaveStart = config.getInt("tankWaveStart");
+		minTankSize = config.getInt("minTankSize");
+		maxTankSize = config.getInt("maxTankSize");
+		minTankRate = config.getInt("minTankRate");
+		maxTankRate = config.getInt("maxTankRate");
 		enemies = new Entity[maxWaveSize - 1];
+		tanks = new Entity[maxTankSize - 1];
 		displayPoints = config.getBoolean("displayPoints");
 		pointsPerKill = config.getInt("pointsPerKill");
+		pointsPerTankKill = config.getInt("pointsPerTankKill");
 		/*pointsPerPlayerKill = config.getInt("pointsPerPlayerKill");
 		pointsLostPerDeath = config.getInt("pointsLostPerDeath");*/
 		spawns = new Location[config.getInt("numSpawns")];
@@ -110,6 +129,11 @@ public class Game {
 			enemyPool[i - 1] = new Enemy(config.getString("Enemy" + i + ".summon"), 
 									 config.getInt("Enemy" + i + ".difficulty"));
 		java.util.Arrays.sort(enemyPool);
+		tankPool = new Enemy[config.getInt("tankPoolSize")];
+		for (int i = 1; i < config.getInt("tankPoolSize") + 1; ++i)
+			tankPool[i - 1] = new Enemy(config.getString("Tank" + i + ".summon"), 
+									 config.getInt("Tank" + i + ".difficulty"));
+		java.util.Arrays.sort(tankPool);
 		randomGen = new Random();
 		newWave();
 		mainPlugin = plugin;
@@ -122,8 +146,15 @@ public class Game {
 		difficulty = difficulty > maxDifficulty ? maxDifficulty : difficulty;
 		minWaveSize += minWaveRate;
 		maxWaveSize += maxWaveRate;
+		enemies = new Entity[maxWaveSize - 1];
 		numEnemiesLeftToSpawn = randomGen.nextInt(maxWaveSize - minWaveSize) + minWaveSize;
+		numTanksLeftToSpawn = randomGen.nextInt(maxTankSize - minTankSize) + minTankSize;
 		++waveNumber;
+		if (waveNumber >= tankWaveStart) {
+			minTankSize += minTankRate;
+			maxTankSize += maxTankRate;
+			tanks = new Entity[maxTankSize - 1];
+		}
 		for (PlayerWithScore p : players)
 			p.player.sendMessage(ChatColor.DARK_GRAY + "WAVE " + waveNumber + "! " + numEnemiesLeftToSpawn + " enemies incoming...");
 		difficulty += difficultyRate;
@@ -155,9 +186,55 @@ public class Game {
 							flag = true;
 							break;
 						}
+					for (Entity knownEnemy : tanks)
+						if (knownEnemy == ent) {
+							flag = true;
+							break;
+						}
 					if (flag) continue;
 					enemies[numEnemies++] = ent;
 					--numEnemiesLeftToSpawn;
+					break;
+				}
+		}
+		return x;
+	}
+	
+	public int spawnTanks(CommandSender sender) {
+		if (waveNumber < tankWaveStart) return 0;
+		int x = randomGen.nextInt(maxTankSpawnPerTry) + 1;
+		x = numTanksLeftToSpawn - x < 0 ? numTanksLeftToSpawn : x;
+		x = x > spawns.length ? spawns.length : x;
+		
+		Location[] tempSpawns = new Location[spawns.length];
+		for (int i = 0; i < tempSpawns.length; ++i)
+			tempSpawns[i] = spawns[i];
+		
+		for (int i = 0; i < x; ++i) {
+			int spawnIndex = randomGen.nextInt(spawns.length - i);
+			Location spawn = tempSpawns[spawnIndex];
+			for (int j = spawnIndex; j < spawns.length - i - 1; ++j)
+				tempSpawns[j] = tempSpawns[j + 1];
+			Bukkit.dispatchCommand(sender, randomTank().summon.replaceFirst("~", String.valueOf(spawn.getX()))
+																.replaceFirst("~", String.valueOf(spawn.getY()))
+					   											.replaceFirst("~", String.valueOf(spawn.getZ())));
+			for (Entity ent : spawn.getChunk().getEntities())
+				if (ent.getLocation().distance(spawn) == 0) {
+					if (ent.getType() == EntityType.PLAYER || ent.getType() == EntityType.DROPPED_ITEM || ent.getType() == EntityType.EXPERIENCE_ORB) continue;
+					boolean flag = false;
+					for (Entity knownEnemy : enemies)
+						if (knownEnemy == ent) {
+							flag = true;
+							break;
+						}
+					for (Entity knownEnemy : tanks)
+						if (knownEnemy == ent) {
+							flag = true;
+							break;
+						}
+					if (flag) continue;
+					tanks[numTanks++] = ent;
+					--numTanksLeftToSpawn;
 					break;
 				}
 		}
@@ -173,6 +250,17 @@ public class Game {
 		if (x > i)
 			return enemyPool[i];
 		return enemyPool[x];
+	}
+	
+	private Enemy randomTank() {
+		int i = 0;
+		while (i < tankPool.length && tankPool[i].difficulty <= difficulty) ++i;
+		--i;
+		if (i == 0) return tankPool[0];
+		int x = randomGen.nextInt(i*4);
+		if (x > i)
+			return tankPool[i];
+		return tankPool[x];
 	}
 
 	public void notifyOfDeath(EntityDeathEvent e) {
@@ -211,7 +299,16 @@ public class Game {
 					for (int j = i; j < numEnemies - 1; ++j)
 						enemies[j] = enemies[j + 1];
 					--numEnemies;
-					if (numEnemies == 0)
+					if (numEnemies == 0 && numTanks == 0)
+						newWave();
+				}
+			for (int i = 0; i < numTanks; ++i)
+				if (tanks[i] == e.getEntity()) {
+					tanks[i] = null;
+					for (int j = i; j < numTanks - 1; ++j)
+						tanks[j] = tanks[j + 1];
+					--numTanks;
+					if (numEnemies == 0 && numTanks == 0)
 						newWave();
 				}
 		}
@@ -228,7 +325,22 @@ public class Game {
 					for (int j = i; j < numEnemies - 1; ++j)
 						enemies[j] = enemies[j + 1];
 					--numEnemies;
-					if (numEnemies == 0)
+					if (numEnemies == 0 && numTanks == 0)
+						newWave();
+				}
+			for (int i = 0; i < numTanks; ++i)
+				if (tanks[i] == e.getEntity()) {
+					//for (PlayerWithScore p : players) {
+					for (PlayerWithScore p : players) {
+						p.player.sendMessage(ChatColor.GOLD + "" + ChatColor.BOLD + "=x=x=x=" + ChatColor.GREEN + "" + ChatColor.BOLD + e.getEntity().getKiller().getName() + ChatColor.WHITE + " KILLED " + ChatColor.RED + e.getEntity().getName() + ChatColor.RESET + "!" + ChatColor.GOLD + "" + ChatColor.BOLD + "=x=x=x=");// + ChatColor.GOLD + " +" + pointsPerKill);
+						if (p.player.getName().equalsIgnoreCase(e.getEntity().getKiller().getName()))
+							p.score += pointsPerTankKill;
+					}
+					tanks[i] = null;
+					for (int j = i; j < numTanks - 1; ++j)
+						tanks[j] = tanks[j + 1];
+					--numTanks;
+					if (numEnemies == 0 && numTanks == 0)
 						newWave();
 				}
 		}
@@ -246,5 +358,7 @@ public class Game {
 	public void killRemainingEnemies() {
 		for (Entity enemy : enemies)
 			if (enemy != null) enemy.remove();
+		for (Entity tank : tanks)
+			if (tank != null) tank.remove();
 	}
 }

@@ -51,6 +51,7 @@ public class Control extends JavaPlugin implements Listener {
 						"  # should the game display the players score as well as placement?\r\n" + 
 						"  displayPoints: 1\r\n" +
 						"  pointsPerKill: 1\r\n" +
+						"  pointsPerTankKill: 3\r\n" +
 						"  # \"difficult\" value for determining which mobs can spawn\r\n" + 
 						"  minDifficulty: 0\r\n" + 
 						"  maxDifficulty: 100\r\n" + 
@@ -64,8 +65,16 @@ public class Control extends JavaPlugin implements Listener {
 						"  minWaveRate: 0\r\n" +
 						"  # amount maxWaveSize should increase every wave\r\n" +
 						"  maxWaveRate: 0\r\n" +
+						"  # first wave that tanks can begin to spawn.\r\n" +
+						"  tankWaveStart: 5" +
+						"  # same as similar settings, but for tanks.\r\n" +
+						"  minTankSize: 1\r\n" +
+						"  maxTankSize: 2\r\n" +
+						"  minTankRate: 1\r\n" +
+						"  maxTankRate: 1\r\n" +
 						"  # max number of mobs to spawn everytime it tries. This is only an upper bound\r\n" + 
 						"  maxSpawnPerTry: 3\r\n" + 
+						"  maxTankSpawnPerTry: 3\r\n" +
 						"  # in server ticks, the amount of time between spawning new mobs\r\n" + 
 						"  spawnFrequency: 20\r\n" + 
 						"  # number of Enemy# properties are there. Please make sure this number is accurate.\r\n" + 
@@ -74,6 +83,11 @@ public class Control extends JavaPlugin implements Listener {
 						"  Enemy1:\r\n" + 
 						"    summon: summon zombie ~ ~ ~\r\n" + 
 						"    difficulty: 0\r\n" + 
+						"  # same thing but for tanks. Again, make sure numbers are correct.\r\n" +
+						"  tankPoolSize: 1\r\n" +
+						"  Tank1:\r\n" +
+						"    summon: 'summon skeleton ~ ~ ~'\r\n" +
+						"    difficulty: 0\r\n" +
 						"  # dont have to touch. Instead, use the command addspawn command ingame/addspawn\r\n" + 
 						"  # Stand in the position you would like as a spawn, and use this command\r\n" + 
 						"  # /addspawn [GameSettingsNumber(1,2,3)]\r\n" + 
@@ -97,6 +111,7 @@ public class Control extends JavaPlugin implements Listener {
 			@Override
 			public void run() {
 				activeGame.spawnEnemies(sender);
+				activeGame.spawnTanks(sender);
 			}
 		}, activeGame.getWaitTime(), activeGame.getWaitTime());
 		sender.sendMessage(ChatColor.GREEN + "" + ChatColor.BOLD + "a game has started with " + players.length + " players using game settings " + gameNum + ".");
@@ -162,6 +177,9 @@ public class Control extends JavaPlugin implements Listener {
 			loadConfig();
 			sender.sendMessage(ChatColor.YELLOW + "" + ChatColor.BOLD + "" + ChatColor.ITALIC + "config file reloaded.");
 			return true;
+		}
+		else if (label.equalsIgnoreCase("announcegame")) {
+			;
 		}
 		return false;
 	}
